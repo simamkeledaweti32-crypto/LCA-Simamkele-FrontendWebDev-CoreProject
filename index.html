@@ -59,11 +59,11 @@
         <div v-if="activeView === 'directory'">
           <form @submit.prevent="addEmployee" class="card p-3 mb-3">
             <h5>Add New Employee</h5>
-            <div class="row">
-              <div class="col-md-3"><input v-model="newEmployee.name" class="form-control" placeholder="Full Name"></div>
-              <div class="col-md-2"><input v-model="newEmployee.department" class="form-control" placeholder="Department"></div>
-              <div class="col-md-2"><input v-model="newEmployee.position" class="form-control" placeholder="Position"></div>
-              <div class="col-md-2"><input v-model.number="newEmployee.monthlySalary" type="number" class="form-control" placeholder="Salary"></div>
+            <div class="row g-2">
+              <div class="col-md-3"><input v-model="newEmployee.fullName" class="form-control" placeholder="Full Name" required></div>
+              <div class="col-md-2"><input v-model="newEmployee.department" class="form-control" placeholder="Department" required></div>
+              <div class="col-md-2"><input v-model="newEmployee.position" class="form-control" placeholder="Position" required></div>
+              <div class="col-md-2"><input v-model.number="newEmployee.monthlySalary" type="number" class="form-control" placeholder="Salary" required></div>
               <div class="col-md-3"><button class="btn btn-success w-100">Add Employee</button></div>
             </div>
           </form>
@@ -73,7 +73,7 @@
                 <thead><tr><th>Name</th><th>Department</th><th>Position</th><th>Attendance</th><th></th></tr></thead>
                 <tbody>
                   <tr v-for="emp in employees" :key="emp.id" @click="selectEmployee(emp)" class="employee-card">
-                    <td>{{ emp.name }}</td><td>{{ emp.department }}</td><td>{{ emp.position }}</td><td>{{ emp.attendanceRate }}%</td>
+                    <td>{{ emp.fullName }}</td><td>{{ emp.department }}</td><td>{{ emp.position }}</td><td>{{ emp.attendanceRate }}%</td>
                     <td><button class="btn btn-sm btn-outline-primary">View</button></td>
                   </tr>
                 </tbody>
@@ -81,7 +81,7 @@
             </div>
             <div class="col-lg-4 details-panel" v-if="selectedEmployee">
               <h5>Employee Details</h5>
-              <p><b>Name:</b> {{ selectedEmployee.name }}</p>
+              <p><b>Name:</b> {{ selectedEmployee.fullName }}</p>
               <p><b>Role:</b> {{ selectedEmployee.position }}</p>
               <p><b>Email:</b> {{ selectedEmployee.email }}</p>
               <p><b>Attendance:</b> {{ selectedEmployee.attendanceRate }}%</p>
@@ -98,7 +98,7 @@
               <h5>Select Employee</h5>
               <select v-model="selectedEmployeeForPayroll" class="form-select">
                 <option :value="null">-- Select --</option>
-                <option v-for="emp in employees" :key="emp.id" :value="emp">{{ emp.name }}</option>
+                <option v-for="emp in employees" :key="emp.id" :value="emp">{{ emp.fullName }}</option>
               </select>
               <button @click="generatePayslip" class="btn btn-primary mt-2">Generate Payslip</button>
             </div>
@@ -120,17 +120,17 @@
 
         <!-- Leave Management View -->
         <div v-if="activeView === 'leave'">
-          <h5>Pending Leave Requests</h5>
+          <h5>All Leave Requests</h5>
           <table class="table table-bordered">
             <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               <tr v-for="req in allLeaveRequests" :key="req.id">
-                <td>{{ getEmployeeName(req.employeeId) }}</td>
-                <td>{{ req.type }}</td>
+                <td>{{ req.employeeName }}</td>
+                <td>{{ req.leaveType }}</td>
                 <td>{{ req.startDate }} to {{ req.endDate }}</td>
                 <td><span class="badge" :class="req.status === 'Pending' ? 'bg-warning' : req.status === 'Approved' ? 'bg-success' : 'bg-danger'">{{ req.status }}</span></td>
                 <td>
-                  <button v-if="req.status === 'Pending'" @click="updateLeaveStatus(req.id, 'Approved')" class="btn btn-sm btn-success">Approve</button>
+                  <button v-if="req.status === 'Pending'" @click="updateLeaveStatus(req.id, 'Approved')" class="btn btn-sm btn-success me-1">Approve</button>
                   <button v-if="req.status === 'Pending'" @click="updateLeaveStatus(req.id, 'Denied')" class="btn btn-sm btn-danger">Deny</button>
                 </td>
               </tr>
