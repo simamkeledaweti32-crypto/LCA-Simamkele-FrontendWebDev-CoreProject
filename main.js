@@ -12,7 +12,7 @@ createApp({
     const selectedEmployeeForPayroll = ref(null);
     const payslipData = ref(null);
     const message = ref(null);
-    const newEmployee = ref({ name: '', department: '', position: '', monthlySalary: null });
+    const newEmployee = ref({ fullName: '', department: '', position: '', monthlySalary: null });
 
     // Load data from localStorage on start
     onMounted(() => {
@@ -28,7 +28,7 @@ createApp({
     // Computed Properties
     const allLeaveRequests = computed(() => {
       return employees.value.flatMap(emp => 
-        emp.leaveRequests.map(req => ({ ...req, employeeId: emp.id }))
+        emp.pendingLeaveRequests.map(req => ({ ...req, employeeId: emp.id, employeeName: emp.fullName }))
       );
     });
 
@@ -52,28 +52,32 @@ createApp({
     }
 
     const getEmployeeName = (id) => {
-      return employees.value.find(emp => emp.id === id)?.name || 'Unknown';
+      return employees.value.find(emp => emp.id === id)?.fullName || 'Unknown';
     }
 
     const getPendingLeaveForEmployee = (id) => {
       const emp = employees.value.find(emp => emp.id === id);
-      return emp ? emp.leaveRequests.filter(req => req.status === 'Pending') : [];
+      return emp ? emp.pendingLeaveRequests.filter(req => req.status === 'Pending') : [];
     }
 
     const addEmployee = () => {
-      if (!newEmployee.value.name || !newEmployee.value.department || !newEmployee.value.position || !newEmployee.value.monthlySalary) {
+      if (!newEmployee.value.fullName || !newEmployee.value.department || !newEmployee.value.position || !newEmployee.value.monthlySalary) {
         showMessage('Please fill all fields', 'error');
         return;
       }
       const newId = employees.value.length > 0 ? Math.max(...employees.value.map(e => e.id)) + 1 : 1;
       employees.value.push({
         id: newId,
-        ...newEmployee.value,
-        email: `${newEmployee.value.name.toLowerCase().replace(' ', '.')}@moderntech.com`,
+        fullName: newEmployee.value.fullName,
+        department: newEmployee.value.department,
+        position: newEmployee.value.position,
+        monthlySalary: newEmployee.value.monthlySalary,
+        email: `${newEmployee.value.fullName.toLowerCase().replace(' ', '.')}@moderntech.com`,
         attendanceRate: 100,
-        leaveRequests: []
+        employmentHistory: [],
+        pendingLeaveRequests: []
       });
-      newEmployee.value = { name: '', department: '', position: '', monthlySalary: null };
+      newEmployee.value = { fullName: '', department: '', position: '', monthlySalary: null };
       showMessage('Employee added successfully!');
     }
 
@@ -87,7 +91,7 @@ createApp({
       const deductions = 500;
       const netSalary = emp.monthlySalary - tax - deductions;
       payslipData.value = {
-        name: emp.name,
+        name: emp.fullName,
         monthlySalary: emp.monthlySalary,
         tax: tax,
         deductions: deductions,
@@ -98,7 +102,7 @@ createApp({
 
     const updateLeaveStatus = (requestId, newStatus) => {
       employees.value.forEach(emp => {
-        const req = emp.leaveRequests.find(r => r.id === requestId);
+        const req = emp.pendingLeaveRequests.find(r => r.id === requestId);
         if (req) {
           req.status = newStatus;
           showMessage(`Leave request ${newStatus}`);
@@ -107,8 +111,8 @@ createApp({
     }
 
     const clockInOut = (emp) => {
-      emp.attendanceRate = emp.attendanceRate === 100 ? 95 : 100; // toggle for demo
-      showMessage(`Attendance updated for ${emp.name}`);
+      emp.attendanceRate = emp.attendanceRate === 100 ? emp.attendanceRate - 5 : 100; // toggle for demo
+      showMessage(`Attendance updated for ${emp.fullName}`);
     }
 
     return {
