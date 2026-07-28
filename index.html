@@ -3,265 +3,144 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ModernTech Solutions HR Portal</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <title>ModernTech HR Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <style>
-    body {
-      min-height: 100vh;
-      background-color: #f8f9fa;
-    }
-    .sidebar-toggle {
-      border: 1px solid rgba(0, 0, 0, 0.08);
-    }
-    .sidebar-collapse {
-      height: calc(100vh - 2rem);
-      overflow-y: auto;
-    }
+    body { background-color: #f8f9fa; }
+    .sidebar { min-height: 100vh; background-color: #212529; }
+    .sidebar .nav-link { color: #adb5bd; }
+    .sidebar .nav-link.active { color: #fff; background-color: #0d6efd; }
+    .employee-card { cursor: pointer; transition: 0.2s; }
+    .employee-card:hover { background-color: #e9ecef; }
+    .details-panel { border-left: 1px solid #dee2e6; }
+    @media (max-width: 768px) { .details-panel { border-left: none; border-top: 1px solid #dee2e6; }
   </style>
 </head>
 <body>
-  <div id="app" class="container-fluid min-vh-100 bg-light">
-    <div class="container py-4">
-      <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-4">
-        <div>
-          <h1 class="display-6 mb-1">ModernTech Solutions HR Portal</h1>
-          <p class="text-muted mb-0">A polished HR dashboard for employee, payroll, and leave management.</p>
+  <div id="app" class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse" :class="{'show': sidebarOpen}">
+        <div class="position-sticky pt-3">
+          <h4 class="text-white text-center">ModernTech HR</h4>
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a class="nav-link" href="#" @click="activeView = 'directory'" :class="{'active': activeView === 'directory'}">Employee Directory</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#" @click="activeView = 'payroll'" :class="{'active': activeView === 'payroll'}">Payroll & Payslips</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#" @click="activeView = 'leave'" :class="{'active': activeView === 'leave'}">Leave Management</a>
+            </li>
+          </ul>
         </div>
-        <button class="btn btn-outline-secondary d-md-none" @click="sidebarVisible = !sidebarVisible">
-          {{ sidebarVisible ? 'Hide' : 'Show' }} Menu
-        </button>
-      </div>
+      </nav>
 
-      <div class="row gx-4 gy-4">
-        <aside class="col-12 col-md-3" :class="{ 'd-none': !sidebarVisible, 'd-md-block': true }">
-          <div class="card shadow-sm rounded-4 p-3 sticky-top" style="top: 1rem;">
-            <div class="mb-4">
-              <h2 class="h6 text-uppercase text-secondary mb-2">Quick Navigation</h2>
-              <p class="small text-muted mb-0">Tap one of the main views below.</p>
+      <!-- Main Content -->
+      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <button class="btn btn-primary d-md-none" @click="sidebarOpen = !sidebarOpen">Menu</button>
+          <h1 class="h2">{{ activeView === 'directory' ? 'Employee Directory' : activeView === 'payroll' ? 'Payroll' : 'Leave Management' }}</h1>
+        </div>
+
+        <!-- Dashboard Cards -->
+        <div class="row mb-4">
+          <div class="col-md-4"><div class="card text-white bg-primary"><div class="card-body"><h5>Total Employees</h5><h2>{{ employees.length }}</h2></div></div></div>
+          <div class="col-md-4"><div class="card text-white bg-warning"><div class="card-body"><h5>Pending Requests</h5><h2>{{ pendingRequestCount }}</h2></div></div></div>
+          <div class="col-md-4"><div class="card text-white bg-success"><div class="card-body"><h5>Top Attendance</h5><h2>{{ topAttendance }}%</h2></div></div></div>
+        </div>
+
+        <!-- Message Alert -->
+        <div v-if="message" class="alert" :class="message.type === 'success' ? 'alert-success' : 'alert-danger'">{{ message.text }}</div>
+
+        <!-- Employee Directory View -->
+        <div v-if="activeView === 'directory'">
+          <form @submit.prevent="addEmployee" class="card p-3 mb-3">
+            <h5>Add New Employee</h5>
+            <div class="row">
+              <div class="col-md-3"><input v-model="newEmployee.name" class="form-control" placeholder="Full Name"></div>
+              <div class="col-md-2"><input v-model="newEmployee.department" class="form-control" placeholder="Department"></div>
+              <div class="col-md-2"><input v-model="newEmployee.position" class="form-control" placeholder="Position"></div>
+              <div class="col-md-2"><input v-model.number="newEmployee.monthlySalary" type="number" class="form-control" placeholder="Salary"></div>
+              <div class="col-md-3"><button class="btn btn-success w-100">Add Employee</button></div>
             </div>
-            <div class="list-group">
-              <button type="button" class="list-group-item list-group-item-action" :class="{ active: activeView === 'Employee Directory' }" @click="changeView('Employee Directory')">
-                Employee Directory
-              </button>
-              <button type="button" class="list-group-item list-group-item-action" :class="{ active: activeView === 'Payroll & Payslips' }" @click="changeView('Payroll & Payslips')">
-                Payroll & Payslips
-              </button>
-              <button type="button" class="list-group-item list-group-item-action" :class="{ active: activeView === 'Leave Management' }" @click="changeView('Leave Management')">
-                Leave Management
-              </button>
+          </form>
+          <div class="row">
+            <div class="col-lg-8">
+              <table class="table table-hover">
+                <thead><tr><th>Name</th><th>Department</th><th>Position</th><th>Attendance</th><th></th></tr></thead>
+                <tbody>
+                  <tr v-for="emp in employees" :key="emp.id" @click="selectEmployee(emp)" class="employee-card">
+                    <td>{{ emp.name }}</td><td>{{ emp.department }}</td><td>{{ emp.position }}</td><td>{{ emp.attendanceRate }}%</td>
+                    <td><button class="btn btn-sm btn-outline-primary">View</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="col-lg-4 details-panel" v-if="selectedEmployee">
+              <h5>Employee Details</h5>
+              <p><b>Name:</b> {{ selectedEmployee.name }}</p>
+              <p><b>Role:</b> {{ selectedEmployee.position }}</p>
+              <p><b>Email:</b> {{ selectedEmployee.email }}</p>
+              <p><b>Attendance:</b> {{ selectedEmployee.attendanceRate }}%</p>
+              <p><b>Pending Leave:</b> {{ getPendingLeaveForEmployee(selectedEmployee.id).length }}</p>
+              <button @click="clockInOut(selectedEmployee)" class="btn btn-sm btn-info">Clock In/Out</button>
             </div>
           </div>
-        </aside>
+        </div>
 
-        <main class="col-12 col-md-9">
-          <div class="d-flex flex-column flex-sm-row flex-wrap gap-3 mb-4">
-            <div class="card shadow-sm rounded-4 p-3 flex-fill" style="min-width: 14rem;">
-              <p class="text-uppercase text-secondary small mb-2">Employees</p>
-              <h3 class="mb-1">{{ employees.length }}</h3>
-              <p class="text-muted mb-0">Active team members</p>
+        <!-- Payroll View -->
+        <div v-if="activeView === 'payroll'">
+          <div class="row">
+            <div class="col-md-6">
+              <h5>Select Employee</h5>
+              <select v-model="selectedEmployeeForPayroll" class="form-select">
+                <option :value="null">-- Select --</option>
+                <option v-for="emp in employees" :key="emp.id" :value="emp">{{ emp.name }}</option>
+              </select>
+              <button @click="generatePayslip" class="btn btn-primary mt-2">Generate Payslip</button>
             </div>
-            <div class="card shadow-sm rounded-4 p-3 flex-fill" style="min-width: 14rem;">
-              <p class="text-uppercase text-secondary small mb-2">Pending Requests</p>
-              <h3 class="mb-1">{{ pendingRequestCount }}</h3>
-              <p class="text-muted mb-0">Leave items awaiting review</p>
-            </div>
-            <div class="card shadow-sm rounded-4 p-3 flex-fill" style="min-width: 14rem;">
-              <p class="text-uppercase text-secondary small mb-2">Top Attendance</p>
-              <h3 class="mb-1">{{ topAttendance[0]?.attendanceRate ?? '--' }}%</h3>
-              <p class="text-muted mb-0">Highest team attendance</p>
+            <div class="col-md-6" v-if="payslipData">
+              <h5>Payslip Preview</h5>
+              <div class="card p-3">
+                <p><b>Employee:</b> {{ payslipData.name }}</p>
+                <p><b>Gross Salary:</b> R{{ payslipData.monthlySalary.toLocaleString() }}</p>
+                <p><b>Tax 18%:</b> R{{ payslipData.tax.toLocaleString() }}</p>
+                <p><b>Deductions:</b> R{{ payslipData.deductions.toLocaleString() }}</p>
+                <hr>
+                <p><b>Net Salary:</b> R{{ payslipData.netSalary.toLocaleString() }}</p>
+                <p><b>Annual Salary:</b> R{{ payslipData.annualSalary.toLocaleString() }}</p>
+                <p><small>Status: Generated</small></p>
+              </div>
             </div>
           </div>
+        </div>
 
-          <section v-if="activeView === 'Employee Directory'">
-            <div class="row g-3">
-              <div class="col-12 col-xl-8">
-                <div class="card shadow-sm rounded-4">
-                  <div class="card-body">
-                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3">
-                      <div>
-                        <h2 class="h5 mb-1">Employee Directory</h2>
-                        <p class="text-muted mb-0">Browse employee profiles, departments, and roles.</p>
-                      </div>
-                      <span class="badge bg-info text-dark">{{ employees.length }} employees</span>
-                    </div>
-                    <div class="table-responsive">
-                      <table class="table table-borderless table-hover align-middle mb-0">
-                        <thead class="table-light">
-                          <tr>
-                            <th>Name</th>
-                            <th>Department</th>
-                            <th>Position</th>
-                            <th class="text-end">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="employee in employees" :key="employee.id">
-                            <td>{{ employee.fullName }}</td>
-                            <td>{{ employee.department }}</td>
-                            <td>{{ employee.position }}</td>
-                            <td class="text-end">
-                              <button class="btn btn-sm btn-primary" @click="selectEmployee(employee.id)">View Details</button>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-xl-4">
-                <div class="card shadow-sm rounded-4 h-100">
-                  <div class="card-body">
-                    <h3 class="h6 mb-3">Selected Employee</h3>
-                    <div v-if="selectedEmployee">
-                      <p class="mb-2"><strong>{{ selectedEmployee.fullName }}</strong></p>
-                      <p class="text-muted small mb-3">{{ selectedEmployee.position }} — {{ selectedEmployee.department }}</p>
-                      <dl class="row mb-0">
-                        <dt class="col-6">Attendance</dt>
-                        <dd class="col-6">{{ selectedEmployee.attendanceRate }}%</dd>
-                        <dt class="col-6">Email</dt>
-                        <dd class="col-6">{{ selectedEmployee.email }}</dd>
-                        <dt class="col-6">Pending Leaves</dt>
-                        <dd class="col-6">{{ selectedEmployee.pendingLeaveRequests.length }}</dd>
-                      </dl>
-                    </div>
-                    <div v-else class="text-muted">Choose an employee from the directory to review their details.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
+        <!-- Leave Management View -->
+        <div v-if="activeView === 'leave'">
+          <h5>Pending Leave Requests</h5>
+          <table class="table table-bordered">
+            <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr v-for="req in allLeaveRequests" :key="req.id">
+                <td>{{ getEmployeeName(req.employeeId) }}</td>
+                <td>{{ req.type }}</td>
+                <td>{{ req.startDate }} to {{ req.endDate }}</td>
+                <td><span class="badge" :class="req.status === 'Pending' ? 'bg-warning' : req.status === 'Approved' ? 'bg-success' : 'bg-danger'">{{ req.status }}</span></td>
+                <td>
+                  <button v-if="req.status === 'Pending'" @click="updateLeaveStatus(req.id, 'Approved')" class="btn btn-sm btn-success">Approve</button>
+                  <button v-if="req.status === 'Pending'" @click="updateLeaveStatus(req.id, 'Denied')" class="btn btn-sm btn-danger">Deny</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-          <section v-if="activeView === 'Payroll & Payslips'">
-            <div class="row g-3">
-              <div class="col-12 col-lg-6">
-                <div class="card shadow-sm rounded-4 h-100">
-                  <div class="card-body">
-                    <h2 class="h5 mb-3">Payroll Summary</h2>
-                    <p class="text-muted mb-3">Generate payslips for recent employees.</p>
-                    <ul class="list-group list-group-flush">
-                      <li class="list-group-item d-flex justify-content-between align-items-center" v-for="employee in employees.slice(0, 6)" :key="employee.id">
-                        <div>
-                          <strong>{{ employee.fullName }}</strong>
-                          <div class="text-muted small">{{ employee.department }}</div>
-                        </div>
-                        <button class="btn btn-sm btn-outline-primary" @click="viewPayslip(employee)">Payslip</button>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-lg-6">
-                <div class="card shadow-sm rounded-4 h-100">
-                  <div class="card-body">
-                    <h2 class="h5 mb-3">Payslip Preview</h2>
-                    <div v-if="currentPayslip">
-                      <div class="mb-3">
-                        <p class="mb-1"><strong>{{ currentPayslip.fullName }}</strong></p>
-                        <p class="text-muted small mb-0">{{ currentPayslip.position }} — {{ currentPayslip.department }}</p>
-                      </div>
-                      <dl class="row mb-0">
-                        <dt class="col-6 text-secondary">Monthly Salary</dt>
-                        <dd class="col-6">R{{ currentPayslip.monthlySalary.toLocaleString() }}</dd>
-                        <dt class="col-6 text-secondary">Annual Salary</dt>
-                        <dd class="col-6">R{{ currentPayslip.annualSalary.toLocaleString() }}</dd>
-                        <dt class="col-6 text-secondary">Generated</dt>
-                        <dd class="col-6">{{ currentPayslip.generatedAt }}</dd>
-                        <dt class="col-6 text-secondary">Status</dt>
-                        <dd class="col-6">{{ currentPayslip.status }}</dd>
-                      </dl>
-                    </div>
-                    <div v-else class="text-muted">Select an employee to preview payroll details.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section v-if="activeView === 'Leave Management'">
-            <div class="row g-3">
-              <div class="col-12">
-                <div class="card shadow-sm rounded-4">
-                  <div class="card-body">
-                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3">
-                      <div>
-                        <h2 class="h5 mb-1">Leave Management</h2>
-                        <p class="text-muted mb-0">Review requests and keep attendance records up to date.</p>
-                      </div>
-                      <span class="badge bg-warning text-dark">{{ pendingRequestCount }} pending</span>
-                    </div>
-                    <div v-if="pendingRequests.length" class="table-responsive">
-                      <table class="table table-striped align-middle mb-0">
-                        <thead class="table-light">
-                          <tr>
-                            <th>Employee</th>
-                            <th>Type</th>
-                            <th>Period</th>
-                            <th>Status</th>
-                            <th class="text-end">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="request in pendingRequests" :key="request.requestId">
-                            <td>{{ request.fullName }}</td>
-                            <td>{{ request.leaveType }}</td>
-                            <td>{{ request.startDate }} — {{ request.endDate }}</td>
-                            <td>{{ request.status }}</td>
-                            <td class="text-end">
-                              <button class="btn btn-sm btn-success me-1" @click="approveLeave(request.employeeId, request.requestId)">Approve</button>
-                              <button class="btn btn-sm btn-danger" @click="denyLeave(request.employeeId, request.requestId)">Deny</button>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    <div v-else class="text-muted">No pending leave requests at the moment.</div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-lg-6">
-                <div class="card shadow-sm rounded-4 h-100">
-                  <div class="card-body">
-                    <h3 class="h6 mb-3">Attendance Overview</h3>
-                    <p class="text-muted mb-3">Highest attendance scores in your team.</p>
-                    <ul class="list-group list-group-flush">
-                      <li class="list-group-item d-flex justify-content-between align-items-center" v-for="employee in topAttendance" :key="employee.id">
-                        <span>{{ employee.fullName }}</span>
-                        <span class="badge bg-success">{{ employee.attendanceRate }}%</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-lg-6">
-                <div class="card shadow-sm rounded-4 h-100">
-                  <div class="card-body">
-                    <h3 class="h6 mb-3">Selected Employee</h3>
-                    <p class="text-muted mb-3">Click on a table row to review employee details.</p>
-                    <div v-if="selectedEmployee">
-                      <p class="mb-1"><strong>{{ selectedEmployee.fullName }}</strong></p>
-                      <p class="text-muted small mb-2">Attendance: {{ selectedEmployee.attendanceRate }}%</p>
-                      <p class="mb-0">Pending leaves: {{ selectedEmployee.pendingLeaveRequests.length }}</p>
-                    </div>
-                    <div v-else class="text-muted">No employee selected.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </main>
-      </div>
+      </main>
     </div>
   </div>
-
-  <script type="importmap">
-    {
-      "imports": {
-        "vue": "https://cdn.jsdelivr.net/npm/vue@3.4.31/dist/vue.esm-browser.min.js"
-      }
-    }
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script type="module" src="./src/main.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
