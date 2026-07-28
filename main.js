@@ -1,129 +1,120 @@
-import { createApp, ref, reactive, computed, watch } from 'vue';
-import { dummyEmployees } from './data/dummyEmployees.js';
+import { dummyEmployees } from './dummyEmployees.js';
 
-const app = {
+const { createApp, ref, computed, watch, onMounted } = Vue;
+
+createApp({
   setup() {
-    const STORAGE_KEY = 'moderntech-hr-employees';
-    const activeView = ref('Employee Directory');
-    const selectedEmployeeId = ref(null);
-    const sidebarVisible = ref(true);
-    const currentPayslip = ref(null);
+    // State
+    const employees = ref([]);
+    const selectedEmployee = ref(null);
+    const activeView = ref('directory');
+    const sidebarOpen = ref(false);
+    const selectedEmployeeForPayroll = ref(null);
+    const payslipData = ref(null);
+    const message = ref(null);
+    const newEmployee = ref({ name: '', department: '', position: '', monthlySalary: null });
 
-    const employees = ref(loadEmployees());
-
-    watch(employees, saveEmployees, { deep: true });
-
-    function loadEmployees() {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch (error) {
-          console.error('Failed to parse employee data from localStorage:', error);
-        }
-      }
-      return dummyEmployees;
-    }
-
-    function saveEmployees() {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(employees.value));
-    }
-
-    const selectedEmployee = computed(() => {
-      return employees.value.find((employee) => employee.id === selectedEmployeeId.value) || null;
+    // Load data from localStorage on start
+    onMounted(() => {
+      const savedEmployees = localStorage.getItem('mt_employees');
+      employees.value = savedEmployees ? JSON.parse(savedEmployees) : dummyEmployees;
     });
 
-    const pendingRequests = computed(() => {
-      return employees.value.flatMap((employee) =>
-        employee.pendingLeaveRequests.map((request) => ({
-          employeeId: employee.id,
-          requestId: request.id,
-          fullName: employee.fullName,
-          leaveType: request.leaveType,
-          startDate: request.startDate,
-          endDate: request.endDate,
-          status: request.status
-        }))
-      ).filter((request) => request.status === 'Pending');
+    // Save data to localStorage whenever employees change
+    watch(employees, (newVal) => {
+      localStorage.setItem('mt_employees', JSON.stringify(newVal));
+    }, { deep: true });
+
+    // Computed Properties
+    const allLeaveRequests = computed(() => {
+      return employees.value.flatMap(emp => 
+        emp.leaveRequests.map(req => ({ ...req, employeeId: emp.id }))
+      );
     });
 
-    const pendingRequestCount = computed(() => pendingRequests.value.length);
+    const pendingRequestCount = computed(() => {
+      return allLeaveRequests.value.filter(req => req.status === 'Pending').length;
+    });
 
     const topAttendance = computed(() => {
-      return [...employees.value]
-        .sort((a, b) => b.attendanceRate - a.attendanceRate)
-        .slice(0, 5);
+      if (employees.value.length === 0) return 0;
+      return Math.max(...employees.value.map(emp => emp.attendanceRate));
     });
 
-    function getAnnualSalary(employee) {
-      return employee && typeof employee.monthlySalary === 'number'
-        ? employee.monthlySalary * 12
-        : 0;
+    // Methods
+    const showMessage = (text, type = 'success') => {
+      message.value = { text, type };
+      setTimeout(() => { message.value = null }, 3000);
     }
 
-    function generatePayslip(employee) {
-      if (!employee) return null;
-      return {
-        employeeId: employee.id,
-        fullName: employee.fullName,
-        email: employee.email,
-        department: employee.department,
-        position: employee.position,
-        monthlySalary: employee.monthlySalary,
-        annualSalary: getAnnualSalary(employee),
-        generatedAt: new Date().toISOString().slice(0, 10),
-        status: 'Draft'
+    const selectEmployee = (emp) => {
+      selectedEmployee.value = emp;
+    }
+
+    const getEmployeeName = (id) => {
+      return employees.value.find(emp => emp.id === id)?.name || 'Unknown';
+    }
+
+    const getPendingLeaveForEmployee = (id) => {
+      const emp = employees.value.find(emp => emp.id === id);
+      return emp ? emp.leaveRequests.filter(req => req.status === 'Pending') : [];
+    }
+
+    const addEmployee = () => {
+      if (!newEmployee.value.name || !newEmployee.value.department || !newEmployee.value.position || !newEmployee.value.monthlySalary) {
+        showMessage('Please fill all fields', 'error');
+        return;
+      }
+      const newId = employees.value.length > 0 ? Math.max(...employees.value.map(e => e.id)) + 1 : 1;
+      employees.value.push({
+        id: newId,
+        ...newEmployee.value,
+        email: `${newEmployee.value.name.toLowerCase().replace(' ', '.')}@moderntech.com`,
+        attendanceRate: 100,
+        leaveRequests: []
+      });
+      newEmployee.value = { name: '', department: '', position: '', monthlySalary: null };
+      showMessage('Employee added successfully!');
+    }
+
+    const generatePayslip = () => {
+      if (!selectedEmployeeForPayroll.value) {
+        showMessage('Please select an employee', 'error');
+        return;
+      }
+      const emp = selectedEmployeeForPayroll.value;
+      const tax = emp.monthlySalary * 0.18;
+      const deductions = 500;
+      const netSalary = emp.monthlySalary - tax - deductions;
+      payslipData.value = {
+        name: emp.name,
+        monthlySalary: emp.monthlySalary,
+        tax: tax,
+        deductions: deductions,
+        netSalary: netSalary,
+        annualSalary: emp.monthlySalary * 12
       };
     }
 
-    function approveLeave(employeeId, requestId) {
-      const employee = employees.value.find((item) => item.id === employeeId);
-      if (!employee) return;
-      const request = employee.pendingLeaveRequests.find((item) => item.id === requestId);
-      if (!request) return;
-      request.status = 'Approved';
-      employee.attendanceRate = Math.max(0, Math.min(100, employee.attendanceRate + 1));
-      saveEmployees();
+    const updateLeaveStatus = (requestId, newStatus) => {
+      employees.value.forEach(emp => {
+        const req = emp.leaveRequests.find(r => r.id === requestId);
+        if (req) {
+          req.status = newStatus;
+          showMessage(`Leave request ${newStatus}`);
+        }
+      });
     }
 
-    function denyLeave(employeeId, requestId) {
-      const employee = employees.value.find((item) => item.id === employeeId);
-      if (!employee) return;
-      const request = employee.pendingLeaveRequests.find((item) => item.id === requestId);
-      if (!request) return;
-      request.status = 'Denied';
-      saveEmployees();
-    }
-
-    function viewPayslip(employee) {
-      currentPayslip.value = generatePayslip(employee);
-    }
-
-    function changeView(viewName) {
-      activeView.value = viewName;
-    }
-
-    function selectEmployee(employeeId) {
-      selectedEmployeeId.value = employeeId;
+    const clockInOut = (emp) => {
+      emp.attendanceRate = emp.attendanceRate === 100 ? 95 : 100; // toggle for demo
+      showMessage(`Attendance updated for ${emp.name}`);
     }
 
     return {
-      activeView,
-      sidebarVisible,
-      employees,
-      selectedEmployeeId,
-      selectedEmployee,
-      pendingRequests,
-      pendingRequestCount,
-      topAttendance,
-      currentPayslip,
-      changeView,
-      selectEmployee,
-      approveLeave,
-      denyLeave,
-      viewPayslip
+      employees, selectedEmployee, activeView, sidebarOpen, selectedEmployeeForPayroll, payslipData, message, newEmployee,
+      allLeaveRequests, pendingRequestCount, topAttendance,
+      selectEmployee, getEmployeeName, getPendingLeaveForEmployee, addEmployee, generatePayslip, updateLeaveStatus, clockInOut
     };
   }
-};
-
-createApp(app).mount('#app');
+}).mount('#app');
