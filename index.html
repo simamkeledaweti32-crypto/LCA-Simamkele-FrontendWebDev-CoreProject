@@ -14,7 +14,7 @@
     .employee-card { cursor: pointer; transition: 0.2s; }
     .employee-card:hover { background-color: #e9ecef; }
     .details-panel { border-left: 1px solid #dee2e6; }
-    @media (max-width: 768px) { .details-panel { border-left: none; border-top: 1px solid #dee2e6; }
+    @media (max-width: 768px) { .details-panel { border-left: none; border-top: 1px solid #dee2e6; } }
   </style>
 </head>
 <body>
@@ -23,8 +23,8 @@
       <!-- Sidebar -->
       <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse" :class="{'show': sidebarOpen}">
         <div class="position-sticky pt-3">
-          <h4 class="text-white text-center">ModernTech HR</h4>
-          <ul class="nav flex-column">
+          <h4 class="text-white text-center mt-2">ModernTech HR</h4>
+          <ul class="nav flex-column mt-4">
             <li class="nav-item">
               <a class="nav-link" href="#" @click="activeView = 'directory'" :class="{'active': activeView === 'directory'}">Employee Directory</a>
             </li>
@@ -47,9 +47,9 @@
 
         <!-- Dashboard Cards -->
         <div class="row mb-4">
-          <div class="col-md-4"><div class="card text-white bg-primary"><div class="card-body"><h5>Total Employees</h5><h2>{{ employees.length }}</h2></div></div></div>
-          <div class="col-md-4"><div class="card text-white bg-warning"><div class="card-body"><h5>Pending Requests</h5><h2>{{ pendingRequestCount }}</h2></div></div></div>
-          <div class="col-md-4"><div class="card text-white bg-success"><div class="card-body"><h5>Top Attendance</h5><h2>{{ topAttendance }}%</h2></div></div></div>
+          <div class="col-md-4 mb-2"><div class="card text-white bg-primary"><div class="card-body"><h5>Total Employees</h5><h2>{{ employees.length }}</h2></div></div></div>
+          <div class="col-md-4 mb-2"><div class="card text-white bg-warning"><div class="card-body"><h5>Pending Requests</h5><h2>{{ pendingRequestCount }}</h2></div></div></div>
+          <div class="col-md-4 mb-2"><div class="card text-white bg-success"><div class="card-body"><h5>Top Attendance</h5><h2>{{ topAttendance }}%</h2></div></div></div>
         </div>
 
         <!-- Message Alert -->
@@ -112,7 +112,7 @@
                 <hr>
                 <p><b>Net Salary:</b> R{{ payslipData.netSalary.toLocaleString() }}</p>
                 <p><b>Annual Salary:</b> R{{ payslipData.annualSalary.toLocaleString() }}</p>
-                <p><small>Status: Generated</small></p>
+                <p><small class="text-success">Status: Generated</small></p>
               </div>
             </div>
           </div>
@@ -137,10 +137,9 @@
             </tbody>
           </table>
         </div>
-
       </main>
     </div>
   </div>
   <script type="module" src="main.js"></script>
 </body>
-</html>
+                                                                               </html>
