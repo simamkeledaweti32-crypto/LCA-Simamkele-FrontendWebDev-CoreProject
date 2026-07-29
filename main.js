@@ -4,7 +4,6 @@ const { createApp, ref, computed, watch, onMounted } = Vue;
 
 createApp({
   setup() {
-    // State
     const employees = ref([]);
     const selectedEmployee = ref(null);
     const activeView = ref('directory');
@@ -14,18 +13,15 @@ createApp({
     const message = ref(null);
     const newEmployee = ref({ fullName: '', department: '', position: '', monthlySalary: null });
 
-    // Load data from localStorage on start
     onMounted(() => {
       const savedEmployees = localStorage.getItem('mt_employees');
       employees.value = savedEmployees ? JSON.parse(savedEmployees) : dummyEmployees;
     });
 
-    // Save data to localStorage whenever employees change
     watch(employees, (newVal) => {
       localStorage.setItem('mt_employees', JSON.stringify(newVal));
     }, { deep: true });
 
-    // Computed Properties
     const allLeaveRequests = computed(() => {
       return employees.value.flatMap(emp => 
         emp.pendingLeaveRequests.map(req => ({ ...req, employeeId: emp.id, employeeName: emp.fullName }))
@@ -41,19 +37,12 @@ createApp({
       return Math.max(...employees.value.map(emp => emp.attendanceRate));
     });
 
-    // Methods
     const showMessage = (text, type = 'success') => {
       message.value = { text, type };
       setTimeout(() => { message.value = null }, 3000);
     }
 
-    const selectEmployee = (emp) => {
-      selectedEmployee.value = emp;
-    }
-
-    const getEmployeeName = (id) => {
-      return employees.value.find(emp => emp.id === id)?.fullName || 'Unknown';
-    }
+    const selectEmployee = (emp) => { selectedEmployee.value = emp; }
 
     const getPendingLeaveForEmployee = (id) => {
       const emp = employees.value.find(emp => emp.id === id);
@@ -93,9 +82,9 @@ createApp({
       payslipData.value = {
         name: emp.fullName,
         monthlySalary: emp.monthlySalary,
-        tax: tax,
+        tax: Math.round(tax),
         deductions: deductions,
-        netSalary: netSalary,
+        netSalary: Math.round(netSalary),
         annualSalary: emp.monthlySalary * 12
       };
     }
@@ -111,14 +100,14 @@ createApp({
     }
 
     const clockInOut = (emp) => {
-      emp.attendanceRate = emp.attendanceRate === 100 ? emp.attendanceRate - 5 : 100; // toggle for demo
+      emp.attendanceRate = emp.attendanceRate === 100 ? emp.attendanceRate - 5 : 100;
       showMessage(`Attendance updated for ${emp.fullName}`);
     }
 
     return {
       employees, selectedEmployee, activeView, sidebarOpen, selectedEmployeeForPayroll, payslipData, message, newEmployee,
       allLeaveRequests, pendingRequestCount, topAttendance,
-      selectEmployee, getEmployeeName, getPendingLeaveForEmployee, addEmployee, generatePayslip, updateLeaveStatus, clockInOut
+      selectEmployee, getPendingLeaveForEmployee, addEmployee, generatePayslip, updateLeaveStatus, clockInOut
     };
   }
 }).mount('#app');
